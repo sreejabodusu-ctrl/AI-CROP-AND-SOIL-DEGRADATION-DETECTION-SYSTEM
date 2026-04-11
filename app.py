@@ -3,25 +3,43 @@ from PIL import Image
 from utils import preprocess_image
 from model import get_model_status, predict_image
 from recommendations import get_solution
-# Page config (ONLY ONCE)
+# Page Config
 st.set_page_config(page_title="AI Crop Detection", layout="wide")
-# Theme Toggle
-theme = st.sidebar.selectbox("Theme", ["Dark", "Light"])
+# Header with Theme Toggle
+col_title, col_toggle = st.columns([8, 2])
+with col_title:
+    st.markdown("""
+    <div class="banner">
+        <h1>AI Crop Pest and Soil Condition Detection</h1>
+        <p>Upload a crop image to classify pest or soil issues and get practical recommendations instantly.</p>
+    </div>
+    """, unsafe_allow_html=True)
+with col_toggle:
+    theme = st.radio(
+        "",
+        ["Dark", "Light"],
+        horizontal=True
+    )
+# Theme Settings
 if theme == "Dark":
     background = "#0e1117"
     text_color = "white"
     box_color = "#1e1e1e"
 else:
-    background = "#f5f7fa"
+    background = "#eef2f7"
     text_color = "black"
     box_color = "#ffffff"
 # Custom CSS
 st.markdown(f"""
 <style>
-/* Page */
-body {{
+/* Full app background */
+.stApp {{
     background-color: {background};
     color: {text_color};
+}}
+/* Main content */
+section[data-testid="stMain"] {{
+    background-color: {background};
 }}
 /* Banner */
 .banner {{
@@ -45,37 +63,28 @@ body {{
     border-radius: 10px;
     border: 1px solid #ccc;
 }}
-/* Section Title */
+/* Section Titles */
 .section-title {{
     font-size: 22px;
     font-weight: 600;
     margin-bottom: 10px;
 }}
-/* Hide default uploader label */
+/* File uploader cleanup */
 div[data-testid="stFileUploader"] > label {{
     display: none;
 }}
-/* Style uploader */
 div[data-testid="stFileUploader"] {{
     background-color: {box_color};
     padding: 20px;
     border-radius: 10px;
     border: 1px dashed #888;
 }}
-/* Center uploader content */
 div[data-testid="stFileUploader"] section {{
     text-align: center;
 }}
 </style>
 """, unsafe_allow_html=True)
-# Header
-st.markdown("""
-<div class="banner">
-    <h1>AI Crop Pest and Soil Condition Detection</h1>
-    <p>Upload a crop image to classify pest or soil issues and get practical recommendations instantly.</p>
-</div>
-""", unsafe_allow_html=True)
-# Model Status Check
+# Model Status
 model_status = get_model_status()
 if not model_status['ready']:
     st.warning(
@@ -92,9 +101,7 @@ col1, col2 = st.columns(2)
 # Upload Section
 with col1:
     st.markdown('<div class="section-title">Upload Image</div>', unsafe_allow_html=True)
-
     st.markdown('<div class="upload-box">', unsafe_allow_html=True)
-
     uploaded_file = st.file_uploader(
         "Upload Image",
         type=["jpg", "jpeg", "png"],
@@ -121,4 +128,5 @@ with col2:
         st.info("Model not ready. Please check model files.")
     else:
         st.info("Upload an image to see results")
+
     st.markdown('</div>', unsafe_allow_html=True)
