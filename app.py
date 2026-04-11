@@ -5,22 +5,8 @@ from model import get_model_status, predict_image
 from recommendations import get_solution
 # Page Config
 st.set_page_config(page_title="AI Crop Detection", layout="wide")
-# Header with Theme Toggle
-col_title, col_toggle = st.columns([8, 2])
-with col_title:
-    st.markdown("""
-    <div class="banner">
-        <h1>AI Crop Pest and Soil Condition Detection</h1>
-        <p>Upload a crop image to classify pest or soil issues and get practical recommendations instantly.</p>
-    </div>
-    """, unsafe_allow_html=True)
-with col_toggle:
-    theme = st.radio(
-        "",
-        ["Dark", "Light"],
-        horizontal=True
-    )
-# Theme Settings
+# Theme Toggle
+theme = st.sidebar.selectbox("Theme", ["Dark", "Light"])
 if theme == "Dark":
     background = "#0e1117"
     text_color = "white"
@@ -29,7 +15,7 @@ else:
     background = "#eef2f7"
     text_color = "black"
     box_color = "#ffffff"
-# Custom CSS
+# Custom CSS 
 st.markdown(f"""
 <style>
 /* Full app background */
@@ -37,7 +23,7 @@ st.markdown(f"""
     background-color: {background};
     color: {text_color};
 }}
-/* Main content */
+/* Main content area */
 section[data-testid="stMain"] {{
     background-color: {background};
 }}
@@ -69,7 +55,7 @@ section[data-testid="stMain"] {{
     font-weight: 600;
     margin-bottom: 10px;
 }}
-/* File uploader cleanup */
+/* Fix File Uploader */
 div[data-testid="stFileUploader"] > label {{
     display: none;
 }}
@@ -83,6 +69,13 @@ div[data-testid="stFileUploader"] section {{
     text-align: center;
 }}
 </style>
+""", unsafe_allow_html=True)
+# Header
+st.markdown("""
+<div class="banner">
+    <h1>AI Crop Pest and Soil Condition Detection</h1>
+    <p>Upload a crop image to classify pest or soil issues and get practical recommendations instantly.</p>
+</div>
 """, unsafe_allow_html=True)
 # Model Status
 model_status = get_model_status()
@@ -128,5 +121,4 @@ with col2:
         st.info("Model not ready. Please check model files.")
     else:
         st.info("Upload an image to see results")
-
     st.markdown('</div>', unsafe_allow_html=True)
