@@ -4,14 +4,25 @@ from model import get_model_status, predict_with_scores
 from recommendations import get_solution
 from utils import preprocess_image
 st.set_page_config(
-    page_title="AL Crop AI Console",
-    page_icon="🌾",
+    page_title="AI Crop AI Console",
+    page_icon=None,
     layout="wide"
 )
-apply_app_styles()
+st.markdown("""
+<style>
+.result-card {
+    padding: 15px;
+    border-radius: 10px;
+    background-color: #f5f5f5;
+    margin-top: 10px;
+}
+</style>
+""", unsafe_allow_html=True)
+st.title("AI Crop Detection Console")
+st.markdown("### Smart Pest and Soil Analysis using AI")
 model_status = get_model_status()
-render_hero()
-render_model_warnings(model_status)
+if not model_status["ready"]:
+    st.warning("Model is still loading. Please wait.")
 left_col, right_col = st.columns([1.1, 1.3], gap="large")
 with left_col:
     st.subheader("Upload Image")
@@ -27,9 +38,9 @@ with left_col:
 with right_col:
     st.subheader("Diagnosis Output")
     if uploaded_file is None:
-        render_result_placeholder()
+        st.info("Upload an image to see results.")
     elif not model_status["ready"]:
-        st.info("Image uploaded. Prediction will run once model files load successfully.")
+        st.info("Prediction will start once the model is ready.")
     else:
         try:
             with st.spinner("Analyzing crop condition..."):
@@ -49,9 +60,9 @@ with right_col:
             st.markdown("</div>", unsafe_allow_html=True)
             st.markdown('<div class="result-card">', unsafe_allow_html=True)
             st.markdown("### Control Measures")
-            st.write(solution["control"])
+            st.write(solution.get("control", "No data available"))
             st.markdown("### Prevention Methods")
-            st.write(solution["prevention"])
+            st.write(solution.get("prevention", "No data available"))
             st.markdown("</div>", unsafe_allow_html=True)
         except Exception as exc:
             st.error(f"Unable to process this image: {exc}")
