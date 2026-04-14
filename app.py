@@ -2,8 +2,6 @@ import streamlit as st
 from PIL import Image
 from model import get_model_status, predict_with_scores
 from recommendations import get_solution
-from ui.components import render_hero, render_model_warnings, render_result_placeholder
-from ui.styles import apply_app_styles
 from utils import preprocess_image
 st.set_page_config(
     page_title="AL Crop AI Console",
