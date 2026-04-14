@@ -1,124 +1,59 @@
 import streamlit as st
 from PIL import Image
-from utils import preprocess_image
-from model import get_model_status, predict_image
+from model import get_model_status, predict_with_scores
 from recommendations import get_solution
-# Page Config
-st.set_page_config(page_title="AI Crop Detection", layout="wide")
-# Theme Toggle
-theme = st.sidebar.selectbox("Theme", ["Dark", "Light"])
-if theme == "Dark":
-    background = "#0e1117"
-    text_color = "white"
-    box_color = "#1e1e1e"
-else:
-    background = "#eef2f7"
-    text_color = "black"
-    box_color = "#ffffff"
-# Custom CSS 
-st.markdown(f"""
-<style>
-/* Full app background */
-.stApp {{
-    background-color: {background};
-    color: {text_color};
-}}
-/* Main content area */
-section[data-testid="stMain"] {{
-    background-color: {background};
-}}
-/* Banner */
-.banner {{
-    background: linear-gradient(to right, #2e7d32, #66bb6a);
-    padding: 30px;
-    border-radius: 15px;
-    color: white;
-    margin-bottom: 30px;
-}}
-/* Upload Box */
-.upload-box {{
-    background-color: {box_color};
-    padding: 25px;
-    border-radius: 12px;
-    border: 1px solid #333;
-}}
-/* Output Box */
-.output-box {{
-    background-color: {box_color};
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-}}
-/* Section Titles */
-.section-title {{
-    font-size: 22px;
-    font-weight: 600;
-    margin-bottom: 10px;
-}}
-/* Fix File Uploader */
-div[data-testid="stFileUploader"] > label {{
-    display: none;
-}}
-div[data-testid="stFileUploader"] {{
-    background-color: {box_color};
-    padding: 20px;
-    border-radius: 10px;
-    border: 1px dashed #888;
-}}
-div[data-testid="stFileUploader"] section {{
-    text-align: center;
-}}
-</style>
-""", unsafe_allow_html=True)
-# Header
-st.markdown("""
-<div class="banner">
-    <h1>AI Crop Pest and Soil Condition Detection</h1>
-    <p>Upload a crop image to classify pest or soil issues and get practical recommendations instantly.</p>
-</div>
-""", unsafe_allow_html=True)
-# Model Status
+from ui.components import render_hero, render_model_warnings, render_result_placeholder
+from ui.styles import apply_app_styles
+from utils import preprocess_image
+st.set_page_config(
+    page_title="AL Crop AI Console",
+    page_icon="🌾",
+    layout="wide"
+)
+apply_app_styles()
 model_status = get_model_status()
-if not model_status['ready']:
-    st.warning(
-        "Model is not ready for inference. "
-        f"Weights loaded: {model_status['weights_loaded']} "
-        f"(path: {model_status['weights_path']}), "
-        f"class mapping loaded: {model_status['class_mapping_loaded']} "
-        f"(path: {model_status['label_mapping_path']})."
-    )
-    if model_status.get('load_error'):
-        st.error(model_status['load_error'])
-# Layout
-col1, col2 = st.columns(2)
-# Upload Section
-with col1:
-    st.markdown('<div class="section-title">Upload Image</div>', unsafe_allow_html=True)
-    st.markdown('<div class="upload-box">', unsafe_allow_html=True)
+render_hero()
+render_model_warnings(model_status)
+left_col, right_col = st.columns([1.1, 1.3], gap="large")
+with left_col:
+    st.subheader("Upload Image")
     uploaded_file = st.file_uploader(
-        "Upload Image",
-        type=["jpg", "jpeg", "png"],
-        label_visibility="collapsed"
+        "Accepted formats: JPG, JPEG, PNG",
+        type=["jpg", "jpeg", "png"]
     )
-    st.markdown('</div>', unsafe_allow_html=True)
-# Output Section
-with col2:
-    st.markdown('<div class="section-title">Diagnosis Output</div>', unsafe_allow_html=True)
-    st.markdown('<div class="output-box">', unsafe_allow_html=True)
-    if uploaded_file and model_status['ready']:
-        image = Image.open(uploaded_file)
-        st.image(image, caption="Uploaded Image", use_column_width=True)
-        with st.spinner("Processing image..."):
-            processed_img = preprocess_image(image)
-            prediction = predict_image(processed_img)
-            solution = get_solution(prediction)
-        st.subheader(f"Prediction: {prediction}")
-        st.subheader("Control Measures")
-        st.write(solution['control'])
-        st.subheader("Prevention Methods")
-        st.write(solution['prevention'])
-    elif uploaded_file and not model_status['ready']:
-        st.info("Model not ready. Please check model files.")
+    if uploaded_file is not None:
+        preview_image = Image.open(uploaded_file).convert("RGB")
+        st.image(preview_image, caption="Image Preview", use_container_width=True)
     else:
-        st.info("Upload an image to see results")
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.info("Choose an image to start diagnosis.")
+with right_col:
+    st.subheader("Diagnosis Output")
+    if uploaded_file is None:
+        render_result_placeholder()
+    elif not model_status["ready"]:
+        st.info("Image uploaded. Prediction will run once model files load successfully.")
+    else:
+        try:
+            with st.spinner("Analyzing crop condition..."):
+                img = Image.open(uploaded_file).convert("RGB")
+                processed_img = preprocess_image(img)
+                result = predict_with_scores(processed_img, top_k=3)
+            prediction = result["label"]
+            confidence = result["confidence"] * 100
+            solution = get_solution(prediction)
+            st.success(f"Detected: {prediction}")
+            st.progress(min(max(result["confidence"], 0.0), 1.0))
+            st.caption(f"Confidence: {confidence:.2f}%")
+            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown("### Top Predictions")
+            for idx, item in enumerate(result["top_predictions"], start=1):
+                st.write(f"{idx}. {item['label']} - {item['confidence'] * 100:.2f}%")
+            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown("### Control Measures")
+            st.write(solution["control"])
+            st.markdown("### Prevention Methods")
+            st.write(solution["prevention"])
+            st.markdown("</div>", unsafe_allow_html=True)
+        except Exception as exc:
+            st.error(f"Unable to process this image: {exc}")
